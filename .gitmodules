@@ -1,0 +1,3 @@
+[submodule "boost.outcome"]
+	path = deps/outcome
+	url = https://github.com/ned14/outcome
