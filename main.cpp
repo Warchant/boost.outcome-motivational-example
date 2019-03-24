@@ -5,30 +5,46 @@
 
 namespace outcome = OUTCOME_V2_NAMESPACE;
 
+namespace kek {
 enum class ConversionErrc {
-  Success = 0,     // 0 should not represent an error
   EmptyString = 1, // (for rationale, see tutorial on error codes)
-  IllegalChar = 2,
-  TooLong = 3,
+  IllegalChar,
+  TooLong,
 };
+
+OUTCOME_MAKE_ERROR_CODE(ConversionErrc);
+} // namespace kek
+
+using kek::ConversionErrc;
 
 enum class DivisionErrc {
   DivisionByZero = 1,
 };
+OUTCOME_MAKE_ERROR_CODE(DivisionErrc);
 
-// clang-format off
-OUTCOME_REGISTER_ERROR(DivisionErrc,
-    (DivisionErrc::DivisionByZero, "we can't divide by 0")
-);
+OUTCOME_REGISTER_CATEGORY(ConversionErrc, e) {
+  switch (e) {
+  case ConversionErrc::EmptyString:
+    return "empty string";
+  case ConversionErrc::IllegalChar:
+    return "illegal char";
+  case ConversionErrc::TooLong:
+    return "too long";
+  default:
+    return "undefined";
+  }
+}
 
-OUTCOME_REGISTER_ERROR(ConversionErrc,
-    (ConversionErrc::Success, "success")
-    (ConversionErrc::EmptyString, "empty string")
-    (ConversionErrc::IllegalChar, "illegal char")
-    (ConversionErrc::TooLong, "too long")
-);
-// clang-format on
+OUTCOME_REGISTER_CATEGORY(DivisionErrc, e) {
+  switch (e) {
+  case DivisionErrc::DivisionByZero:
+    return "division by 0";
+  default:
+    return "fuck2";
+  }
+}
 
+namespace lib {
 outcome::result<int> convert(std::string str) {
   if (str.empty())
     return ConversionErrc::EmptyString;
@@ -58,15 +74,19 @@ outcome::result<int> convert_and_divide(std::string a, std::string b) {
 
 template <typename T> void check(T &&f) {
   if (auto r = f()) {
-    auto val = r.value();
+    auto &&val = r.value();
     std::cout << val << std::endl;
   } else {
-    auto e = r.error();
+    auto &&e = r.error();
     std::cout << e.category().name() << " | " << e.message() << std::endl;
   }
 }
 
+} // namespace lib
+
 int main() {
+  using lib::check;
+  using lib::convert_and_divide;
   // prints 250
   check([]() { return convert_and_divide("500", "2"); });
 
@@ -82,7 +102,7 @@ int main() {
   //  attribute [-Wunused-result] convert("s");
   //  ^~~~~~~ ~~~
 
-  convert("s");
+  lib::convert("s");
 
   return 0;
 }

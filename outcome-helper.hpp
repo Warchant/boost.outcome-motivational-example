@@ -1,9 +1,17 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#ifndef KAGOME_OUTCOME_REGISTER_HPP
+#define KAGOME_OUTCOME_REGISTER_HPP
+
+#include <boost/config.hpp> // for BOOST_SYMBOL_EXPORT
 #include <boost/preprocessor.hpp>
 #include <string>
 #include <system_error> // bring in std::error_code et al
 
 #ifndef KAGOME_EXPORT
-#define KAGOM_EXPORT
 #if defined(BOOST_SYMBOL_EXPORT)
 #define KAGOME_EXPORT BOOST_SYMBOL_EXPORT
 #else
@@ -11,60 +19,41 @@
 #endif
 #endif
 
-#define STRINGIFY(x) #x
+#define OUTCOME_USE_STD_IN_PLACE_TYPE 1
 
-#define __FILLER_0(X, Y) ((X, Y)) __FILLER_1
-#define __FILLER_1(X, Y) ((X, Y)) __FILLER_0
-#define __FILLER_0_END
-#define __FILLER_1_END
+namespace __kagome {
 
-#define __CASE_P(_cond, _ret)                                                  \
-  case _cond:                                                                  \
-    return _ret;
+template <typename T> class Category : public std::error_category {
+public:
+  const char *name() const noexcept final { return typeid(T).name(); }
 
-#define __CASE(R, _, _tuple)                                                   \
-  __CASE_P((BOOST_PP_TUPLE_ELEM(2, 0, _tuple)),                                \
-           (BOOST_PP_TUPLE_ELEM(2, 1, _tuple)))
+  std::string message(int c) const final { return toString(static_cast<T>(c)); }
 
-#define __WRITE_CASES(_seq)                                                    \
-  BOOST_PP_SEQ_FOR_EACH(__CASE, _, BOOST_PP_CAT(__FILLER_0 _seq, _END))
+  KAGOME_EXPORT static std::string toString(T t) {
+    enum dummy {
+      d = (sizeof(struct must_execute_OUTCOME_REGISTER_CATEGORY) == sizeof(T))
+    };
+    return "";
+  }
 
-#define __REGISTER_STRUCT(NAME)                                                \
+  KAGOME_EXPORT static const Category<T> &get() {
+    static const Category<T> c;
+    return c;
+  }
+}; /* end of class */
+
+} // namespace __kagome
+
+#define OUTCOME_MAKE_ERROR_CODE(Enum)                                          \
+  inline std::error_code make_error_code(Enum e) {                             \
+    return {static_cast<int>(e), __kagome::Category<Enum>::get()};             \
+  }
+
+#define OUTCOME_REGISTER_CATEGORY(Enum, Name)                                  \
   namespace std {                                                              \
-  template <> struct is_error_code_enum<NAME> : std::true_type {};             \
-  }
-
-#define __WRITE_MESSAGE_FUNCTION(NAME, _seq)                                   \
-  std::string message(int c) const override final {                            \
-    switch (static_cast<NAME>(c)) {                                            \
-      __WRITE_CASES(_seq)                                                      \
-    default:                                                                   \
-      return "unknown";                                                        \
-    }                                                                          \
-  }
-
-#define __REGISTER_CATEGORY(NAME, _seq)                                        \
-  namespace detail {                                                           \
-  class NAME##_category : public std::error_category {                         \
-  public:                                                                      \
-    const char *name() const noexcept final { return STRINGIFY(NAME); }        \
-    __WRITE_MESSAGE_FUNCTION(NAME, _seq)                                       \
-  }; /* end of class */                                                        \
-  }  /* end of namespace */                                                    \
-                                                                               \
-  KAGOME_EXPORT const detail::NAME##_category &NAME##_category() {             \
-    static detail::NAME##_category c;                                          \
-    return c;                                                                  \
+  template <> struct is_error_code_enum<Enum> : std::true_type {};             \
   }                                                                            \
                                                                                \
-  inline std::error_code make_error_code(NAME e) {                             \
-    return {static_cast<int>(e), NAME##_category()};                           \
-  }
+  template <> std::string __kagome::Category<Enum>::toString(Enum Name)
 
-#define OUTCOME_REGISTER_ERROR(Name, _seq)                                     \
-  __REGISTER_STRUCT(Name)                                                      \
-  __REGISTER_CATEGORY(Name, _seq)
-
-
-
-// BOOST_PP_TUPLE_ELEM
+#endif // KAGOME_OUTCOME_REGISTER_HPP
