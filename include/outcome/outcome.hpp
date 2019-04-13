@@ -6,10 +6,12 @@
 #ifndef OUTCOME_HPP
 #define OUTCOME_HPP
 
-//#include <boost/outcome.hpp>
-#include "outcome-single-header.hpp"
+#include <boost/outcome.hpp>
+//#include "outcome-single-header.hpp"
 #include "outcome-register.hpp"
 
-namespace outcome = OUTCOME_V2_NAMESPACE;  // required to be here
+namespace outcome = BOOST_OUTCOME_V2_NAMESPACE;  // required to be here
+
+#define OUTCOME_TRY(...) BOOST_OUTCOME_TRY(__VA_ARGS__)
 
 #endif  // OUTCOME_HPP
