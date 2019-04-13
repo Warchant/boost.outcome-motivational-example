@@ -6,6 +6,7 @@
 #ifndef OUTCOME_HPP
 #define OUTCOME_HPP
 
+//#include <boost/outcome.hpp>
 #include "outcome-single-header.hpp"
 #include "outcome-register.hpp"
 

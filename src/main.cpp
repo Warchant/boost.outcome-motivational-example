@@ -20,18 +20,22 @@ outcome::result<int> convert(std::string str) {
   return atoi(str.c_str());
 }
 
+outcome::result<void> try_(std::string str) {
+  // just to demonstrate that OUTCOME_TRY is used
+  OUTCOME_TRY(val, lib::convert(str));
+  std::cout << "result: " << val << "\n";
+
+  return outcome::success();
+}
+
 } // namespace lib
 
 int main() {
-  if (auto r = lib::convert("500")) {
-    std::cout << "success " << r.value() << "\n";
-  } else {
+  if (auto r = lib::try_("500"); !r) {
     std::cout << "error " << r.error() << "\n";
   }
 
-  if (auto r = lib::convert("a")) {
-    std::cout << "success " << r.value() << "\n";
-  } else {
+  if (auto r = lib::try_("a"); !r) {
     std::cout << "error " << r.error() << "\n";
   }
 
